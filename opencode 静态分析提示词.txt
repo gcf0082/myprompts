@@ -126,10 +126,10 @@ CommandExecutor.java调用了ProcessBuilder.start执行命令，存在安全风�
 - 忽略非空的校验
 
 输出报告格式：                                                                                                                                                                                                                                                                                                                          
-{                                                                                                                                                                                               
-    "sources": [                                                                                                                                                                                  
-    {                                                                                                                                                                                           
-        "id": 1,  
+{          
+    "sources": [
+      {                                                                                                                                                                                           
+        "id": 1,
         "location": {                                                                                                                                                                             
           "file": "src/main/java/com/example/controller/FileController.java",
           "line": 45,
@@ -149,6 +149,28 @@ CommandExecutor.java调用了ProcessBuilder.start执行命令，存在安全风�
             },
             "operation": "Files.readString(Paths.get(getUploadDir(), fileName))",
             "parameter": "fileName",
+            "propagationChain": [
+              {
+                "location": {
+                  "file": "src/main/java/com/example/controller/FileController.java",
+                  "line": 50,
+                  "class": "FileController",
+                  "method": "download(HttpServletRequest)"
+                },
+                "description": "调用 userService.getUserInfo(fileName)",
+                "parameter": "fileName"
+              },
+              {
+                "location": {
+                  "file": "src/main/java/com/example/service/UserService.java",
+                  "line": 22,
+                  "class": "UserService",
+                  "method": "getUserInfo(String username)"
+                },
+                "description": "调用 fileService.readFile(username)",
+                "parameter": "username"
+              }
+            ],
             "validationsBeforeSink": [
               {
                 "location": {
@@ -163,7 +185,8 @@ CommandExecutor.java调用了ProcessBuilder.start执行命令，存在安全风�
             ]
           }
         ]
-    }
+      }
+    ]
 }
 
 
