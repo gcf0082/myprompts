@@ -1,0 +1,82 @@
+你是java数据流分析专家，分析给定的入口函数的source点参数传播到那些敏感操作，
+并且识别出调用敏感操作前，做了哪些校验（比如通过正则限制只能是数字）。要根据数据流的分析方法，一直分析都找到不被调函数的定义为止。
+敏感操作包括：文件操作（必须涉及到路径的）、命令执行、网络操作等（比如将数据发送出去）。
+
+！！重要：当要读取当前文件之外的文件进一步分析是，必须使用subagent子任务完成
+
+
+待分析文件：@src/main/java/com/weihua/controller/DeviceController.java文件的changeDevicePassword函数
+
+要求：
+- 不要输出任何安全风险和建议
+- 禁止直接搜索敏感操作的关键字，一定要使用数据流自顶向下的方法进行分析
+- 如果代码读写其他文件或者执行脚本，要在项目内查找文件读取内容进一步分析
+ （注意：如果从代码能明确的文件名，就不要尝试读其他的文件了。不要在项目目录外查找）。如果source点会作为脚本的参数、或者写入文件。输出要体现
+- sink点无敏感操作（比如用于记录日志），不体现在输出报告里。
+- 重要：不要读写执行当前目录之外的文件 
+- 输出保存在当前目录的reports.json文件中 
+- sink点一定是在当前项目找不到代码实现的
+- 忽略非空的校验
+- 如果source参数包含多个字段的参数，可以考虑分字段体现，比如arg.name
+
+输出报告格式：                                                                                                                                                                   {          
+    "sources": [
+      {                                                                                                                                                                                           
+        "id": 1,
+        "location": {                                                                                                                                                                             
+          "file": "src/main/java/com/example/controller/FileController.java",
+          "line": 45,
+          "class": "FileController",
+          "method": "download(HttpServletRequest)"
+        },
+        "parameterName": "fileName",
+        "parameter": "@RequestParam String fileName",
+        "sinks": [
+          {
+            "location": {
+              "file": "src/main/java/com/example/service/FileService.java",
+              "line": 18,
+              "class": "FileService",
+              "method": "readFile(String fileName)"
+            },
+            "operation": "Files.readString(Paths.get(getUploadDir(), fileName))",
+            "parameter": "fileName",
+            "propagationChain": [
+              {
+                "location": {
+                  "file": "src/main/java/com/example/controller/FileController.java",
+                  "line": 50,
+                  "class": "FileController",
+                  "method": "download(HttpServletRequest)"
+                },
+                "description": "调用 userService.getUserInfo(fileName)",
+                "parameter": "fileName"
+              },
+              {
+                "location": {
+                  "file": "src/main/java/com/example/service/UserService.java",
+                  "line": 22,
+                  "class": "UserService",
+                  "method": "getUserInfo(String username)"
+                },
+                "description": "调用 fileService.readFile(username)",
+                "parameter": "username"
+              }
+            ],
+            "validationsBeforeSink": [
+              {
+                "location": {
+                  "file": "src/main/java/com/example/controller/FileController.java",
+                  "line": 45
+                },
+                "code": "@Pattern(regexp = \"^[a-zA-Z0-9_.-]+$\")",
+                "description": "仅允许字母、数字、点、下划线、短横线",
+                "type": "正则校验",
+                "allowedSpecialChars": ["_", ".", "-"]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+}
